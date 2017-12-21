@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta charset='utf-8' />
+    <title>SOUND CHECK</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.42.2/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.42.2/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        body { margin:0; padding:0; }
+        body {font-family: Arial;}
+        h1,h2,h3,h4,h5,h6 {
+              font-family: "Arial Rounded MT Bold";
+              letter-spacing: 2px;}
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+        
+        .popup {
+               max-width: 300px;
+               
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="w3-top">
+  <div class="w3-bar w3-white w3-padding w3-card-2" style="letter-spacing:2px;">
+    <a href="#home" class="w3-bar-item w3-button">SOUND CHECK</a>
+    <!-- Right-sided navbar links. Hide them on small screens -->
+    <div class="w3-right w3-hide-small">
+      <a href="http://ec2-52-203-169-211.compute-1.amazonaws.com:5000/introduction" class="w3-bar-item w3-button">Introduction</a>
+      <a href="http://ec2-52-203-169-211.compute-1.amazonaws.com:5000/Advisory_service_search" class="w3-bar-item w3-button">Insights</a>
+      <a href="http://ec2-52-203-169-211.compute-1.amazonaws.com:5000/Industry_overview_choose" class="w3-bar-item w3-button">Overview</a>
+    </div>
+  </div>
+</div>
+    
+<!-- Page content -->
+<div id='map'></div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiYXp1cmF5eXkiLCJhIjoiY2o5cnB3MGVxMjlhaDJ4bnRqc2lqbmZkcSJ9.NYV7B6PyuLOWMLsKsDpz0w';
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v9',
+    center: [-74.0060, 40.7128],
+    zoom: 4
+});
+
+map.on('load', function() {
+    // Add a new source from our GeoJSON data and set the
+    // 'cluster' option to true. GL-JS will add the point_count property to your source data.
+    map.addSource("concerts", {
+        type: "geojson",
+        // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
+        // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
+        data: {{geodatasets|tojson|safe}}
+        //cluster: true,
+        //clusterMaxZoom: 14, // Max zoom to cluster points on
+        //clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
+    });
+
+    map.addLayer({
+        id: "cities",
+        type: "circle",
+        source: "concerts",
+        filter: ["has", "total_concerts"],
+        paint: {
+            "circle-color": {
+                property: "total_concerts",
+                type: "exponential",
+                stops: [
+                   [300, "#E8DFEE"], 
+                   [15183, "#824CA7"]
+                ]
+            },
+            "circle-radius": {
+                property: "total_concerts",
+                type: "exponential",
+                stops: [
+                    [300, 2],
+                    [15183, 50]
+                ]
+            },
+            "circle-opacity": 0.8
+        }
+    });
+   /*
+    map.addLayer({
+        id: "concert-count",
+        type: "symbol",
+        source: "concerts",
+        filter: ["has", "total_concerts"],
+        layout: {
+            "text-field": "{total_concerts}",
+            "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],   
+            "text-size": 10
+        }
+    });*/
+});
+
+// When a click event occurs near a place, open a popup at the location of
+// the feature, with HTML description from its properties
+map.on('click', function(e) {
+  var features = map.queryRenderedFeatures(e.point, { layers: ['cities'] });
+
+  // if the features have no info, return nothing
+  if (!features.length) {
+    return;
+  }
+
+  var feature = features[0];
+
+  // Populate the popup and set its coordinates
+  // based on the feature found
+  var popup = new mapboxgl.Popup()
+  .setLngLat(feature.geometry.coordinates)
+  .setHTML('<div id=\'popup\' class=\'popup\' > ' +
+  '<ul class=\'list-group\'>' +
+  '<h5 style=\'text-align: center\'> ' + feature.properties['city'] + '</h5>' +
+  '<p style=\'font-size:15px\'><strong>' + feature.properties['total_concerts'] +'</strong>'+' concerts in last 5 years </p></ul></div>')
+  .addTo(map);
+});
+
+// Use the same approach as above to indicate that the symbols are clickable
+// by changing the cursor style to 'pointer'
+map.on('mousemove', function(e) {
+  var features = map.queryRenderedFeatures(e.point, { layers: ['cities'] });
+  map.getCanvas().style.cursor = features.length ? 'pointer' : '';
+});
+
+
+</script>
+
+</body>
+</html>
